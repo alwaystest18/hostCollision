@@ -13,6 +13,7 @@ import (
 	"crypto/tls"
 	"log"
 	"context"
+	"regexp"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/antlabs/strsim"
@@ -23,6 +24,16 @@ import (
 
 var resultHostCollision []string
 var wg sync.WaitGroup
+
+//匹配程序接受的站点url格式
+func CheckUrl(str string) bool {
+	regCheckUrl := regexp.MustCompile(`http[s]?://\d+\.\d+\.\d+\.\d+(:\d+)?`)
+	if regCheckUrl.MatchString(str) {
+	    return true
+	} else {
+	    return false
+	}
+ }
 
 func GetPageContent(urlStr string) (string, int, error) {
 	//display 'Unsolicited response received on idle HTTP channel starting with "\n"; err=<nil>' error
@@ -251,7 +262,9 @@ func main() {
 	que := queue.New(threads)
 
 	for _, urlStr := range urlsList {
-		que.Put(urlStr)
+		if CheckUrl(urlStr) {
+			que.Put(urlStr)
+		}
 	}
 
 	limiter := ratelimit.New(context.Background(), rateLimit, time.Duration(1 * time.Second))
