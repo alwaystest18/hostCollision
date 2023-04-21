@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"flag"
 	"time"
@@ -20,6 +19,8 @@ import (
 	"github.com/Workiva/go-datastructures/queue"
 	"github.com/sirupsen/logrus"
 	"github.com/projectdiscovery/ratelimit"
+	"github.com/projectdiscovery/gologger"
+	"github.com/projectdiscovery/gologger/levels"
 )
 
 var resultHostCollision []string
@@ -128,7 +129,7 @@ func GetPageContentWithHost(urlStr string, hostName string) (string, int, error)
 func FileContentToList(filePath string) []string {
     fileContent, err := ioutil.ReadFile(filePath)
     if err != nil {
-        fmt.Println("file open fail: " + filePath)
+		gologger.Fatal().Msg("file open fail: " + filePath)
         return []string{""}
     }
     contentList := strings.Split(string(fileContent), "\n")
@@ -202,20 +203,20 @@ func HostCollision(urlStr string, hostsList []string) {
 		if err != nil {
 			continue
 		}
-		fmt.Printf("test site: %s \n", urlStr)
+		gologger.Info().Msg("test site: " + urlStr)
 
 		if len(pageContent3) < 200 {
 			//两次测试请求成功且返回长度相同，如果枚举的host返回长度与测试请求不同则碰撞成功
 			if len(pageContent1) == len(pageContent2) && pageStatusCode2 != 0 {
 				if len(pageContent3) != len(pageContent1) {
-					fmt.Printf("[success] url: %s    host: %s \n", urlStr, hostName)
+					gologger.Silent().Msg("[success] url: " + urlStr + "  host: " + hostName)
 					resultHostCollision = append(resultHostCollision, "url:" + urlStr + "  host:" + hostName)
 					continue
 				}
 			//两次测试请求成功且状态码相同，如果枚举的host状态码与测试请求不同则碰撞成功
 			} else if pageStatusCode1 == pageStatusCode2 && pageStatusCode2 != 0 {
 				if pageStatusCode3 != pageStatusCode2 {
-					fmt.Printf("[success] url: %s    host: %s \n", urlStr, hostName)
+				    gologger.Silent().Msg("[success] url: " + urlStr + "  host: " + hostName)
 					resultHostCollision = append(resultHostCollision, "url:" + urlStr + "  host:" + hostName)
 					continue
 				}
@@ -224,7 +225,7 @@ func HostCollision(urlStr string, hostsList []string) {
 				realLenPageContent2 := len(pageContent2) - len(testHostName) * strings.Count(pageContent2, testHostName)
 				realLenPageContent3 := len(pageContent3) - len(hostName) * strings.Count(pageContent3, hostName)
 				if realLenPageContent3 != realLenPageContent2 {
-					fmt.Printf("[success] url: %s    host: %s \n", urlStr, hostName)
+				    gologger.Silent().Msg("[success] url: " + urlStr + "  host: " + hostName)
 					resultHostCollision = append(resultHostCollision, "url:" + urlStr + "  host:" + hostName)
 					continue
 				}
@@ -232,7 +233,7 @@ func HostCollision(urlStr string, hostsList []string) {
 		//如果页面长度超过200则进行页面相似度对比，如果页面相差较大则判定碰撞成功	
 		} else if len(pageContent3) >= 200 {
 			if StrCompare(pageContent3, pageContent1) < 85 && StrCompare(pageContent3, pageContent2) < 85 {
-				fmt.Printf("[success] url: %s    host: %s \n", urlStr, hostName)
+			    gologger.Silent().Msg("[success] url: " + urlStr + "  host: " + hostName)
 				resultHostCollision = append(resultHostCollision, "url:" + urlStr + "  host:" + hostName)
 				continue
 			}
@@ -249,6 +250,7 @@ func main() {
 	t := flag.Int64("t", 10, "Number of threads(default:10)")
 	r := flag.Int("r", 30, "rate limit (default:30)")
 	o := flag.String("o", "host_collision_success_" + nowTime + ".txt", "output file name")
+	silent := flag.Bool("silent", false, "silent mode")
 	flag.Parse()
 
 	urlFile := *uf
@@ -256,6 +258,14 @@ func main() {
 	threads := *t
 	rateLimit := uint(*r)
 	outFileName := *o
+	silentMode := *silent
+
+	//安静模式，仅输出成功记录
+	if silentMode {
+		gologger.DefaultLogger.SetMaxLevel(levels.LevelSilent)
+	} else {
+		gologger.DefaultLogger.SetMaxLevel(levels.LevelInfo)
+	}
 
 	urlsList := FileContentToList(urlFile)
 	hostsList := FileContentToList(domainFile)

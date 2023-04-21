@@ -35,6 +35,8 @@ Usage of ./hostCollision:
         output file name (default "host_collision_success_202304192245.txt")
   -r int    //速率限制
         rate limit (default:30) (default 30)
+  -silent    //安静模式，仅输出成功结果
+        silent mode
   -t int  //指定线程数
         Number of threads(default:10) (default 10)
   -uf string    //站点url，格式如https://1.1.1.1或https://1.1.1.1:8443
