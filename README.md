@@ -61,6 +61,12 @@ $ ./hostCollision -df hosts.txt -uf urls.txt
 
 5.通过https://github.com/projectdiscovery/httpx 检测存活站点，结果文件可直接用于本程序uf参数使用
 
+假如no_cdn_ips.txt为ip地址列表，我们在部署以上工具后可以直接通过如下命令生成urls.txt
+
+```
+mapcidr -cl no_cdn_ips.txt -aggregate-approx -silent|naabu -p 80,443,8080,8000,8888 -silent|httpx -t 50 -rl 150 -silent -o urls.txt
+```
+
 **本程序定位就是仅做host碰撞功能，因此强烈推荐对于已知的目标ip段使用naabu扫描端口+httpx验证存活站点后再进行host碰撞，可大大节省时间**
 
 ## 常见问题
