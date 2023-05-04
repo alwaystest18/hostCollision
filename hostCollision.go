@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -253,6 +254,7 @@ func main() {
 	if len(resultHostCollision) > 0 {
 		outFile, _ := os.OpenFile(outFileName, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0666)
 		defer outFile.Close()
+		sort.Strings(resultHostCollision)
 		resultHostCollision = UniqueStrList(resultHostCollision)
 		for _, resultInfo := range resultHostCollision {
 			outFile.WriteString(resultInfo + "\n")
