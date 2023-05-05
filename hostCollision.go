@@ -171,27 +171,35 @@ func HostCollision(urlStr string, hostsList []string) {
 
 		if len(pageContent3) < 200 {
 			//两次测试请求成功且返回长度相同，如果枚举的host返回长度与测试请求不同则碰撞成功
-			if len(pageContent1) == len(pageContent2) && pageStatusCode2 != 0 {
+			if len(pageContent1) == len(pageContent2) {
 				if len(pageContent3) != len(pageContent1) {
 					gologger.Silent().Msg("[success] url: " + urlStr + "  host: " + hostName)
 					resultHostCollision = append(resultHostCollision, "url:"+urlStr+"  host:"+hostName)
 					continue
 				}
 				//两次测试请求成功且状态码相同，如果枚举的host状态码与测试请求不同则碰撞成功
-			} else if pageStatusCode1 == pageStatusCode2 && pageStatusCode2 != 0 {
+			} else if pageStatusCode1 == pageStatusCode2 {
 				if pageStatusCode3 != pageStatusCode2 {
 					gologger.Silent().Msg("[success] url: " + urlStr + "  host: " + hostName)
 					resultHostCollision = append(resultHostCollision, "url:"+urlStr+"  host:"+hostName)
 					continue
 				}
-			} else if pageStatusCode2 != 0 && len(pageContent2) != len(pageContent3) {
-				//如果两个错误的host返回结果长度不同，则很有可能是把host内容加到了页面内容中，此时我们需要减去hostname的长度后再做对比
-				realLenPageContent2 := len(pageContent2) - len(testHostName)*strings.Count(pageContent2, testHostName)
-				realLenPageContent3 := len(pageContent3) - len(hostName)*strings.Count(pageContent3, hostName)
-				if realLenPageContent3 != realLenPageContent2 {
-					gologger.Silent().Msg("[success] url: " + urlStr + "  host: " + hostName)
-					resultHostCollision = append(resultHostCollision, "url:"+urlStr+"  host:"+hostName)
-					continue
+			} else if len(pageContent1) != len(pageContent2) {
+				if strings.Count(pageContent2, testHostName) > 0 {
+					//如果两个错误的host返回结果长度不同，则很有可能是把host内容加到了页面内容中，此时我们需要减去hostname的长度后再做对比
+					realLenPageContent2 := len(pageContent2) - len(testHostName)*strings.Count(pageContent2, testHostName)
+					realLenPageContent3 := len(pageContent3) - len(hostName)*strings.Count(pageContent3, hostName)
+					if realLenPageContent3 != realLenPageContent2 {
+						gologger.Silent().Msg("[success] url: " + urlStr + "  host: " + hostName)
+						resultHostCollision = append(resultHostCollision, "url:"+urlStr+"  host:"+hostName)
+						continue
+					}
+				} else {
+					if len(pageContent3) != len(pageContent1) && len(pageContent3) != len(pageContent2) {
+						gologger.Silent().Msg("[success] url: " + urlStr + "  host: " + hostName)
+						resultHostCollision = append(resultHostCollision, "url:"+urlStr+"  host:"+hostName)
+						continue
+					}
 				}
 			}
 			//如果页面长度超过200则进行页面相似度对比，如果页面相差较大则判定碰撞成功
@@ -203,7 +211,6 @@ func HostCollision(urlStr string, hostsList []string) {
 			}
 		}
 	}
-
 }
 
 func main() {
