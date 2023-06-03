@@ -39,7 +39,7 @@ func CheckUrl(str string) bool {
 }
 
 // 发起http请求，增加请求头Host
-func GetPageContent(urlStr string, hostName string) (string, int, error) {
+func GetPageContent(urlStr string, hostName string) (string, int, int, error) {
 	//display 'Unsolicited response received on idle HTTP channel starting with "\n"; err=<nil>' error
 	log.SetOutput(ioutil.Discard)
 
@@ -76,18 +76,19 @@ func GetPageContent(urlStr string, hostName string) (string, int, error) {
 	//发起http请求
 	resp, err := client.R().Get(urlStr)
 	if err != nil {
-		return "", 0, err
+		return "", 0, 0, err
 	}
 	//读取http响应内容
 	body := resp.String()
+	lenPage := len(body)
 	//截取返回内容，避免内容过大占用内存
-	if len(body) > 2000 {
+	if lenPage > 2000 {
 		body = body[:2000]
 	}
 
 	statusCode := resp.StatusCode()
 
-	return body, statusCode, nil
+	return body, statusCode, lenPage, nil
 }
 
 // 将文件内容转为字符列表
@@ -150,20 +151,20 @@ func UniqueStrList(strList []string) []string {
 func HostCollision(urlStr string, hostsList []string) {
 	defer wg.Done()
 	//首先不带host请求ip，提取状态码与页面内容作为对比特征
-	pageContent1, pageStatusCode1, err := GetPageContent(urlStr, "")
+	pageContent1, pageStatusCode1, pageLen1, err := GetPageContent(urlStr, "")
 	if err != nil {
 		return
 	}
 	for _, hostName := range hostsList {
 		//对需要碰撞的host以.分隔，第一位替换为十位随机字符，如www.baidu.com替换后为xxxxxxxxxx.baidu.com,请求后提取状态码与页面内容作为对比特征
 		testHostName := ReplaceHostName(hostName)
-		pageContent2, pageStatusCode2, err := GetPageContent(urlStr, testHostName)
+		pageContent2, pageStatusCode2, pageLen2, err := GetPageContent(urlStr, testHostName)
 		if err != nil {
 			continue
 		}
 
 		//对需要碰撞的host发起http请求，提取状态码与页面内容作为对比特征
-		pageContent3, pageStatusCode3, err := GetPageContent(urlStr, hostName)
+		pageContent3, pageStatusCode3, pageLen3, err := GetPageContent(urlStr, hostName)
 		if err != nil {
 			continue
 		}
@@ -171,8 +172,8 @@ func HostCollision(urlStr string, hostsList []string) {
 
 		if len(pageContent3) < 200 {
 			//两次测试请求成功且返回长度相同，如果枚举的host返回长度与测试请求不同则碰撞成功
-			if len(pageContent1) == len(pageContent2) {
-				if len(pageContent3) != len(pageContent1) {
+			if pageLen1 == pageLen2 {
+				if pageLen3 != pageLen1 {
 					gologger.Silent().Msg("[success] url: " + urlStr + "  host: " + hostName)
 					resultHostCollision = append(resultHostCollision, "url:"+urlStr+"  host:"+hostName)
 					continue
@@ -184,7 +185,7 @@ func HostCollision(urlStr string, hostsList []string) {
 					resultHostCollision = append(resultHostCollision, "url:"+urlStr+"  host:"+hostName)
 					continue
 				}
-			} else if len(pageContent1) != len(pageContent2) {
+			} else if pageLen1 != pageLen2 {
 				if strings.Count(pageContent2, testHostName) > 0 {
 					//如果两个错误的host返回结果长度不同，则很有可能是把host内容加到了页面内容中，此时我们需要减去hostname的长度后再做对比
 					realLenPageContent2 := len(pageContent2) - len(testHostName)*strings.Count(pageContent2, testHostName)
@@ -195,7 +196,7 @@ func HostCollision(urlStr string, hostsList []string) {
 						continue
 					}
 				} else {
-					if len(pageContent3) != len(pageContent1) && len(pageContent3) != len(pageContent2) {
+					if pageLen3 != pageLen1 && pageLen3 != pageLen2 {
 						gologger.Silent().Msg("[success] url: " + urlStr + "  host: " + hostName)
 						resultHostCollision = append(resultHostCollision, "url:"+urlStr+"  host:"+hostName)
 						continue
