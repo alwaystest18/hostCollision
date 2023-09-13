@@ -181,7 +181,7 @@ func HostCollision(urlStr string, hostsList []string) {
 		if err != nil {
 			continue
 		}
-		gologger.Info().Msg("test site: " + urlStr)
+		gologger.Info().Msgf("test url: %s    hostname: %s", urlStr, hostName)
 
 		if len(pageContent3) < 200 {
 			//两次测试请求成功且返回长度相同，如果枚举的host返回长度与测试请求不同则碰撞成功
@@ -222,6 +222,11 @@ func HostCollision(urlStr string, hostsList []string) {
 			}
 			//如果页面长度超过200则进行页面相似度对比，如果页面相差较大则判定碰撞成功
 		} else if len(pageContent3) >= 200 {
+			//页面内容中如出现hostname则替换为空，减少相似度对比的噪音
+			pageContent1 = strings.Replace(pageContent1, hostName, "", -1)
+			pageContent2 = strings.Replace(pageContent2, hostName, "", -1)
+			pageContent3 = strings.Replace(pageContent3, hostName, "", -1)
+
 			if StrCompare(pageContent3, pageContent1) < 85 && StrCompare(pageContent3, pageContent2) < 85 {
 				gologger.Silent().Msgf("[success] url: %s  host: %s  title:[%s]  Length: %d", urlStr, hostName, pageTitle, pageLen3)
 				resultHostCollision = append(resultHostCollision,
