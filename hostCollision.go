@@ -26,10 +26,11 @@ import (
 )
 
 var resultHostCollision []string
+var resultHostCollisionSuccess []string
 
 var wg sizedwaitgroup.SizedWaitGroup = sizedwaitgroup.New(100)
 
-// 匹配程序接受的站点url格式
+// 匹
 func CheckUrl(str string) bool {
 	regCheckUrl := regexp.MustCompile(`http[s]?://\d+\.\d+\.\d+\.\d+(:\d+)?`)
 	if regCheckUrl.MatchString(str) {
